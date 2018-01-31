@@ -8,8 +8,10 @@ import sys
 import tensorflow as tf
 import numpy as np
 import matplotlib.pyplot as plt
+from sklearn.calibration import CalibratedClassifierCV, calibration_curve
 import pandas as pd
 import sklearn.metrics
+from sklearn.metrics import brier_score_loss
 import sklearn.model_selection
 import sklearn.linear_model
 import sklearn.preprocessing
@@ -20,30 +22,30 @@ from sklearn.tree import DecisionTreeClassifier
 
 
 def manipulate_data():
-    '''
-    X1_data = 10 + np.random.randint(15,size=250)
+    
+    X1_data = 22 + np.random.randint(6,size=1000)
     #X11_data = np.random.randint(60,size=250)
-    X2_data = 10 + np.random.randint(15,size=250)
-    #X22_data = np.random.randint(60,size=250)
-
-
-    X1_b_data = 18 + np.random.randint(15,size=250)
+    X1_b_data = 0 + np.random.randint(50,size=1000)
     #X11_b_data = X11_data + np.random.randint(30,size=250)
-    X2_b_data = 18 + np.random.randint(15,size=250)
+    
+    
+    X2_data = 15 + np.random.randint(30,size=1000)
+    #X22_data = np.random.randint(60,size=250)
+    X2_b_data = 0 + np.random.randint(50,size=1000)
     #X22_b_data = X22_data + np.random.randint(30,size=250)
 
 
-    a = np.hstack((X1_data,X2_data))
+    a = np.hstack((X1_data,X1_b_data))
     #b = np.hstack((X11_data,X1_b_data))
-    c = np.hstack((X1_b_data,X2_b_data))
+    c = np.hstack((X2_data,X2_b_data))
     #d = np.hstack((X22_data,X2_b_data))
     #ab = np.hstack((a,b))
     #cd = np.hstack((c,d))
     X_data = np.vstack((a,c))
     
-    print(X_data.shape)
-    '''
-    n_samples = 1000
+
+    print(X_data)
+    '''n_samples = 1000
     t_0 = 1.5 * np.pi * (1 + 1.5 * np.random.rand(1, n_samples))
     t_1 = 1.5 * np.pi * (2.5 + 1.5 * np.random.rand(1, n_samples))
     x_0 = t_0 * np.cos(t_0)
@@ -57,17 +59,19 @@ def manipulate_data():
     
     X = np.hstack((X_0, X_1))
 
-    X_data = X.T
+    X_data = X.T'''
 
     y_data = np.hstack((np.hstack((np.ones(1000),np.zeros(1000)))))
 
 
-    y_data = y_data.T.reshape(2000,1)
-    print(X_data.shape)
-    print(y_data.shape)
+    y_data = y_data.reshape(1,2000)
+    #print(X_data.shape)
+    #print(y_data.shape)
     
-    data = np.hstack((X_data, y_data))
-    #data = data.T
+    data = np.vstack((X_data, y_data))
+    #print(data.shape)
+    data = data.T
+
 
     '''values = data
     df = pd.DataFrame(values)
@@ -78,7 +82,14 @@ def manipulate_data():
     np.random.shuffle(data)
     X = np.delete(data,-1,1)
     y = data[:,-1]
-    #print(y)'''
+    print(X)
+    print(y)
+    
+    for i in range(2000):
+        if (y[i] ==1):
+            plt.scatter(X[i,0],X[i,1], c = 'g')
+        else:
+            plt.scatter(X[i,0],X[i,1], c = 'r')
 
     return data,X,y
 
@@ -93,7 +104,7 @@ def scale_features(X, low=0, upp=1):
     return X_scale
 
 def knn(X_train, y_train, X_test):
-    knn = KNeighborsClassifier(n_neighbors=9,n_jobs=-1)
+    knn = KNeighborsClassifier(n_neighbors=5,n_jobs=-1)
     knn.fit(X_train,y_train)
     
     return knn.predict(X_test), knn.predict_proba(X_train), knn.predict_proba(X_test)
@@ -110,6 +121,11 @@ def dectree(X_train, y_train, X_test):
     dectree.fit(X_train, y_train)
 
     return  dectree.predict(X_test), dectree.predict_proba(X_train), dectree.predict_proba(X_test)
+
+def cali_log(X_train, y_train, X_test):
+    callog = CalibratedClassifierCV(LogisticRegression(),cv=2,method='sigmoid')
+    callog.fit(X_train,y_train)
+    return callog.predict(X_test), callog.predict_proba(X_train), callog.predict_proba(X_test)
 
 def add_layer(inputs, in_size, out_size, activation_function=None):
     Weights = tf.Variable(tf.zeros([in_size, out_size]))
@@ -143,11 +159,12 @@ def nn(X,y,X_t):
     for i in range(30000):
         # 整個訓練最核心的code , feed_dict 表示餵入 輸入與輸出
         sess.run(train_step, feed_dict={xs: x_data, ys: y_data})
-        print(sess.run(loss, feed_dict={xs: x_data, ys: y_data}))
+        #print(sess.run(loss, feed_dict={xs: x_data, ys: y_data}))
     
     print(sess.run(loss, feed_dict={xs: x_data, ys: y_data}))
-    prediction_value = sess.run(prediction, feed_dict={xs: X_t})        
-    return  prediction_value
+    prediction_value = sess.run(prediction, feed_dict={xs: X_t})
+    #sess.close()    
+    return  abs(prediction_value)
     
 def mv(kn,log,dec):
     
@@ -198,6 +215,8 @@ def en(nnyp,my):
     
     return en_p
 
+
+
 def main(argv):
     data,X,y = manipulate_data()
     
@@ -208,12 +227,13 @@ def main(argv):
     m,k = X_train.shape
     n,d = X_test.shape
     
-    
+    '''
     for i in range(n):
         if (y_test[i] ==1):
             plt.scatter(X_test[i,0],X_test[i,1], c = 'g')
         else:
             plt.scatter(X_test[i,0],X_test[i,1], c = 'r')
+    '''
     
     kn,knp_tr,knp_te=knn(X_train,y_train,X_test)
     kn = kn.reshape(n,1)
@@ -244,10 +264,31 @@ def main(argv):
     
     
     
+    '''
+    fig = plt.figure(1, figsize=(10, 10))
+    ax1 = plt.subplot2grid((3, 1), (0, 0), rowspan=2)
+    ax2 = plt.subplot2grid((3, 1), (2, 0))
+    fraction_of_positives, mean_predicted_value = calibration_curve(y_test, clogp_te_1, n_bins=10)
+    knbscore =  brier_score_loss(y_test, clogp_te_1, pos_label=y.max())
+    ax1.plot(mean_predicted_value, fraction_of_positives, "s-",label="%s (%1.3f)" % ('clog', knbscore))
+    ax2.hist(knp_tr_1, range=(0, 1), bins=10, label='clog',histtype="step", lw=2)
+    ax1.set_ylabel("Fraction of positives")
+    ax1.set_ylim([-0.05, 1.05])
+    ax1.legend(loc="lower right")
+    ax1.set_title('Calibration plots  (reliability curve)')
+
+    ax2.set_xlabel("Mean predicted value")
+    ax2.set_ylabel("Count")
+    ax2.legend(loc="upper center", ncol=2)
+
+    plt.tight_layout()
+    '''
+    
+    
     for i in range(m):
-        kn_tr_l[i] = (y_train[i] - knp_tr_1[i])
-        log_tr_l[i] = (y_train[i] - logp_tr_1[i])
-        dec_tr_l[i] = (y_train[i] - decp_tr_1[i])
+        kn_tr_l[i] = abs(y_train[i] - knp_tr_1[i])
+        log_tr_l[i] = abs(y_train[i] - logp_tr_1[i])
+        dec_tr_l[i] = abs(y_train[i] - decp_tr_1[i])
         
 
     y_hat = np.hstack((np.hstack((kn,log)),dec))
@@ -259,7 +300,7 @@ def main(argv):
     yp_tr_l = np.hstack((np.hstack((kn_tr_l,log_tr_l)),dec_tr_l))
     print(yp_tr_l)
     nn_yp_te = nn(X_train,yp_tr_l,X_test)
-    #print(nn_yp_te)
+    print(nn_yp_te)
 
     mvm = mv(kn,log,dec)
     #print(y)
@@ -272,7 +313,7 @@ def main(argv):
     #print("nn_p test R^2: %f" % (sklearn.metrics.r2_score(nn_yp_te, yp_te)))
     print("mv test : %f" % (sklearn.metrics.accuracy_score(mvm,y_test)))
     print("en_p test : %f" % (sklearn.metrics.accuracy_score(en_p,y_test)))
-
+    
     
 if __name__ == "__main__":
     main(sys.argv)
