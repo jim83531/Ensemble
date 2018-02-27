@@ -8,6 +8,7 @@ import sys
 import tensorflow as tf
 import numpy as np
 import matplotlib.pyplot as plt
+from mpl_toolkits.mplot3d import Axes3D
 from sklearn.calibration import CalibratedClassifierCV, calibration_curve
 import pandas as pd
 import sklearn.metrics
@@ -23,25 +24,80 @@ from sklearn.tree import DecisionTreeClassifier
 
 def manipulate_data():
     
-    X1_data = 22 + np.random.randint(6,size=1000)
+    X1_data = 1 + np.random.randint(10,size=1000)
     #X11_data = np.random.randint(60,size=250)
-    X1_b_data = 0 + np.random.randint(50,size=1000)
+    X1_b_data = 1 + np.random.randint(10,size=1000)
     #X11_b_data = X11_data + np.random.randint(30,size=250)
     
+    #X2_data = 1 + np.random.randint(10,size=1000)
+    X2_b_data = 1 + np.random.randint(10,size=1000)
     
-    X2_data = 15 + np.random.randint(30,size=1000)
+    #斜線型
+    X2_data = np.ones(1000)
+    for i in range(1000):
+        for j in range(1,10):
+            if (j<=X1_data[i]<j+1):
+                X2_data[i] = j + np.random.randint(5)
+    
+    '''
+    X2_b_data = np.ones(1000)
+    for i in range(1000):
+        for j in range(1,10):
+            if (j<=X1_b_data[i]<j+1):
+                X2_b_data[i] = j + np.random.randint(7)
+    '''        
+    #X3_data = 1 + np.random.randint(5,size=1000)
+    X3_data = np.ones(1000)
+    for i in range(1000):
+        if (1<=X1_data[i]<5):
+                X3_data[i] = (X1_data[i] * X2_data[i])/10 - np.random.randint(5)
+        if (5<=X1_data[i]<11):
+                X3_data[i] = (X1_data[i] * X1_data[i])/10 - np.random.randint(7)
+    #X3_b_data = 1 + np.random.randint(10,size=1000)
+    X3_b_data = np.ones(1000)
+    for i in range(1000):
+        for j in range(1,10):
+            if (j<=X2_b_data[i]<j+1):
+                X3_b_data[i] = j + np.random.randint(4)
+    #X3_data = (X1_data * 3 + X1_data * X1_data)/13
+    #X3_b_data = (X2_data * 5+ X2_data * X2_data * 4 + X1_data / X2_data * 2.7)/70
+    '''
+    X4_data = X1_data / X2_data + np.random.randint(10,size=1000)
+    X4_b_data = X1_data * X2_data + np.random.randint(10,size=1000)
+    
+    X5_data = X1_data * 3 + X1_data * X1_data + np.random.randint(10,size=1000)
+    X5_b_data = X2_data * 5+ X2_data * X2_data * 4 + np.random.randint(10,size=1000)
+    '''
+    
+    '''
+    #斜線型
+    X2_data = np.zeros(1000)
+    for i in range(1000):
+        for j in range(10,40):
+            if (j<=X1_data[i]<j+1):
+                X2_data[i] = j + np.random.randint(15)
+        
+
+        
     #X22_data = np.random.randint(60,size=250)
-    X2_b_data = 0 + np.random.randint(50,size=1000)
+    X2_b_data = 15 + np.random.randint(35,size=1000)
+    X2_b_data = np.zeros(1000)
+    for i in range(1000):
+        for j in range(-10,20):
+            if (j<=X1_b_data[i]<j+1):
+                X2_b_data[i] =  j + np.random.randint(15)'''
     #X22_b_data = X22_data + np.random.randint(30,size=250)
 
 
     a = np.hstack((X1_data,X1_b_data))
-    #b = np.hstack((X11_data,X1_b_data))
-    c = np.hstack((X2_data,X2_b_data))
-    #d = np.hstack((X22_data,X2_b_data))
-    #ab = np.hstack((a,b))
-    #cd = np.hstack((c,d))
-    X_data = np.vstack((a,c))
+    b = np.hstack((X2_data,X2_b_data))
+    c = np.hstack((X3_data,X3_b_data))
+    #d = np.hstack((X4_data,X4_b_data))
+    #e = np.hstack((X5_data,X5_b_data))
+    ab = np.vstack((a,b))
+    #cd = np.vstack((c,d))
+    #x = np.vstack((ab,cd))
+    X_data = np.vstack((ab,c))
     
 
     print(X_data)
@@ -84,13 +140,17 @@ def manipulate_data():
     y = data[:,-1]
     print(X)
     print(y)
-    
+    fig = plt.figure()
+    ax  = fig.add_subplot(111, projection = '3d')
     for i in range(2000):
         if (y[i] ==1):
-            plt.scatter(X[i,0],X[i,1], c = 'g')
+            ax.scatter(X[i,0],X[i,1],X[i,2], c = 'g')
         else:
-            plt.scatter(X[i,0],X[i,1], c = 'r')
-
+            ax.scatter(X[i,0],X[i,1],X[i,2], c = 'r')
+    ax.set_xlabel('x')
+    ax.set_ylabel('y')
+    ax.set_zlabel('z')
+    plt.show()
     return data,X,y
 
 def load_train_test_data(X,y,train_ratio=.5):
@@ -122,6 +182,11 @@ def dectree(X_train, y_train, X_test):
 
     return  dectree.predict(X_test), dectree.predict_proba(X_train), dectree.predict_proba(X_test)
 
+def cali_knn(X_train, y_train, X_test):
+    calknn = CalibratedClassifierCV(KNeighborsClassifier(n_neighbors=5,n_jobs=-1),cv=2,method='sigmoid')
+    calknn.fit(X_train,y_train)
+    return calknn.predict(X_test), calknn.predict_proba(X_train), calknn.predict_proba(X_test)
+
 def cali_log(X_train, y_train, X_test):
     callog = CalibratedClassifierCV(LogisticRegression(),cv=2,method='sigmoid')
     callog.fit(X_train,y_train)
@@ -138,9 +203,9 @@ def add_layer(inputs, in_size, out_size, activation_function=None):
         outputs = activation_function(Wx_plus_b)
     return outputs
 def nn(X,y,X_t):
-    xs = tf.placeholder(tf.float32, [None, 2])
+    xs = tf.placeholder(tf.float32, [None, 3])
     ys = tf.placeholder(tf.float32, [None, 3])
-    l1 = add_layer(xs, 2, 25, activation_function = tf.nn.sigmoid)
+    l1 = add_layer(xs, 3, 25, activation_function = tf.nn.sigmoid)
     #l2 = add_layer(l1, 25, 30, activation_function=tf.nn.relu)
     #l3 = add_layer(l2, 30, 15, activation_function=tf.nn.sigmoid)
     prediction = add_layer(l1, 25, 3, activation_function= None)
@@ -268,8 +333,8 @@ def main(argv):
     fig = plt.figure(1, figsize=(10, 10))
     ax1 = plt.subplot2grid((3, 1), (0, 0), rowspan=2)
     ax2 = plt.subplot2grid((3, 1), (2, 0))
-    fraction_of_positives, mean_predicted_value = calibration_curve(y_test, clogp_te_1, n_bins=10)
-    knbscore =  brier_score_loss(y_test, clogp_te_1, pos_label=y.max())
+    fraction_of_positives, mean_predicted_value = calibration_curve(y_test, knp_te_1, n_bins=10)
+    knbscore =  brier_score_loss(y_test, knp_te_1, pos_label=y.max())
     ax1.plot(mean_predicted_value, fraction_of_positives, "s-",label="%s (%1.3f)" % ('clog', knbscore))
     ax2.hist(knp_tr_1, range=(0, 1), bins=10, label='clog',histtype="step", lw=2)
     ax1.set_ylabel("Fraction of positives")
