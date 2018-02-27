@@ -43,22 +43,23 @@ def manipulate_data():
     X2_b_data = np.ones(1000)
     for i in range(1000):
         for j in range(1,10):
-            if (j<=X1_b_data[i]<j+1):
-                X2_b_data[i] = j + np.random.randint(7)
-    '''        
+            if (j<=X1_data[i]<j+1):
+                X2_data[i] = j + np.random.randint(5)
+    '''      
     #X3_data = 1 + np.random.randint(5,size=1000)
     X3_data = np.ones(1000)
     for i in range(1000):
         if (1<=X1_data[i]<5):
-                X3_data[i] = (X1_data[i] * X2_data[i])/10 - np.random.randint(5)
+                X3_data[i] = (X1_data[i] * X2_data[i]*5 - X2_data[i]/X1_data[i]*2.1)/10 - np.random.randint(5)
         if (5<=X1_data[i]<11):
-                X3_data[i] = (X1_data[i] * X1_data[i])/10 - np.random.randint(7)
+                X3_data[i] = (X1_data[i] * X1_data[i]*2.3 - X1_data[i])/10 - np.random.randint(7)
     #X3_b_data = 1 + np.random.randint(10,size=1000)
     X3_b_data = np.ones(1000)
     for i in range(1000):
-        for j in range(1,10):
-            if (j<=X2_b_data[i]<j+1):
-                X3_b_data[i] = j + np.random.randint(4)
+        if (1<=X1_b_data[i]<3):
+                X3_b_data[i] = (X2_b_data[i] * X2_b_data[i]*1.6 + X1_b_data[i]*X1_b_data[i]*0.2)/10 - np.random.randint(5)
+        if (3<=X1_b_data[i]<11):
+                X3_b_data[i] = (X1_b_data[i] * X1_b_data[i]*2.3 - X1_data[i]*X2_b_data[i]*0.5)/10 - np.random.randint(3)
     #X3_data = (X1_data * 3 + X1_data * X1_data)/13
     #X3_b_data = (X2_data * 5+ X2_data * X2_data * 4 + X1_data / X2_data * 2.7)/70
     '''
@@ -187,7 +188,7 @@ def cali_knn(X_train, y_train, X_test):
     calknn.fit(X_train,y_train)
     return calknn.predict(X_test), calknn.predict_proba(X_train), calknn.predict_proba(X_test)
 
-def cali_log(X_train, y_train, X_test):
+def cali_logreg(X_train, y_train, X_test):
     callog = CalibratedClassifierCV(LogisticRegression(),cv=2,method='sigmoid')
     callog.fit(X_train,y_train)
     return callog.predict(X_test), callog.predict_proba(X_train), callog.predict_proba(X_test)
@@ -300,7 +301,7 @@ def main(argv):
             plt.scatter(X_test[i,0],X_test[i,1], c = 'r')
     '''
     
-    kn,knp_tr,knp_te=knn(X_train,y_train,X_test)
+    kn,knp_tr,knp_te=cali_knn(X_train,y_train,X_test)
     kn = kn.reshape(n,1)
     kn_tr_l =np.zeros((m,1))
     knp_te_0 = np.delete(knp_te,1,1)
