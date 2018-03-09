@@ -193,6 +193,11 @@ def cali_logreg(X_train, y_train, X_test):
     callog.fit(X_train,y_train)
     return callog.predict(X_test), callog.predict_proba(X_train), callog.predict_proba(X_test)
 
+def cali_dectree(X_train, y_train, X_test):
+    callog = CalibratedClassifierCV(DecisionTreeClassifier(),cv=2,method='sigmoid')
+    callog.fit(X_train,y_train)
+    return callog.predict(X_test), callog.predict_proba(X_train), callog.predict_proba(X_test)
+
 def add_layer(inputs, in_size, out_size, activation_function=None):
     Weights = tf.Variable(tf.zeros([in_size, out_size]))
     biases = tf.Variable(tf.zeros([1, out_size]) + 0.01)
@@ -281,7 +286,14 @@ def en(nnyp,my):
     
     return en_p
 
-
+def cmp(perdict, label):
+    n, =label.shape
+    wrong = []
+    for i in range(n):
+        if (perdict[i] != label[i]):
+            wrong.append(i)
+            
+    return wrong 
 
 def main(argv):
     data,X,y = manipulate_data()
@@ -311,7 +323,7 @@ def main(argv):
     
     
     
-    log,logp_tr,logp_te=logreg(X_train,y_train,X_test)
+    log,logp_tr,logp_te=cali_logreg(X_train,y_train,X_test)
     log = log.reshape(n,1)
     log_tr_l =np.zeros((m,1))
     logp_te_0 = np.delete(logp_te,1,1)
@@ -320,7 +332,7 @@ def main(argv):
     logp_tr_1 = np.delete(logp_tr,0,1)
     
     
-    dec,decp_tr,decp_te=dectree(X_train,y_train,X_test)
+    dec,decp_tr,decp_te=cali_dectree(X_train,y_train,X_test)
     dec = dec.reshape(n,1)
     dec_tr_l =np.zeros((m,1))
     decp_te_0 = np.delete(decp_te,1,1)
@@ -379,7 +391,14 @@ def main(argv):
     #print("nn_p test R^2: %f" % (sklearn.metrics.r2_score(nn_yp_te, yp_te)))
     print("mv test : %f" % (sklearn.metrics.accuracy_score(mvm,y_test)))
     print("en_p test : %f" % (sklearn.metrics.accuracy_score(en_p,y_test)))
-    
+    knn_w = cmp(kn,y_test)
+    log_w = cmp(log,y_test)
+    dec_w = cmp(dec,y_test)
+    en_p_w = cmp(en_p,y_test)
+    '''print(knn_w)
+    print(log_w)
+    print(dec_w)
+    print(en_p_w)'''
     
 if __name__ == "__main__":
     main(sys.argv)
