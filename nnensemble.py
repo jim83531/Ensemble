@@ -18,6 +18,7 @@ import sklearn.linear_model
 import sklearn.preprocessing
 from sklearn.neighbors import KNeighborsClassifier
 from sklearn.linear_model import LogisticRegression
+from sklearn.svm import SVC
 from sklearn.tree import DecisionTreeClassifier
 #from sklearn.datasets.samples_generator import make_swiss_roll
 
@@ -171,7 +172,7 @@ def knn(X_train, y_train, X_test):
     return knn.predict(X_test), knn.predict_proba(X_train), knn.predict_proba(X_test)
     
 def logreg(X_train, y_train, X_test):
-    logreg =LogisticRegression()
+    logreg =SVC(kernel='rbf',max_iter=-1, probability=True, random_state=None, shrinking=False)
     logreg.fit(X_train, y_train)
     
     return logreg.predict(X_test), logreg.predict_proba(X_train), logreg.predict_proba(X_test)
@@ -189,7 +190,7 @@ def cali_knn(X_train, y_train, X_test):
     return calknn.predict(X_test), calknn.predict_proba(X_train), calknn.predict_proba(X_test)
 
 def cali_logreg(X_train, y_train, X_test):
-    callog = CalibratedClassifierCV(LogisticRegression(),cv=2,method='sigmoid')
+    callog = CalibratedClassifierCV(SVC(kernel='rbf',max_iter=-1, probability=True, random_state=None, shrinking=False),cv=2,method='sigmoid')
     callog.fit(X_train,y_train)
     return callog.predict(X_test), callog.predict_proba(X_train), callog.predict_proba(X_test)
 
@@ -219,7 +220,7 @@ def nn(X,y,X_t):
     y_data = y.astype(np.float32)
     #print(y_data)
     
-    loss = tf.reduce_mean(tf.reduce_sum(tf.square(ys - prediction)))
+    loss = tf.losses.mean_squared_error(ys, prediction)
     train_step = tf.train.AdadeltaOptimizer(0.1).minimize(loss)
     init = tf.initialize_all_variables()
     sess = tf.Session()
@@ -287,13 +288,27 @@ def en(nnyp,my):
     return en_p
 
 def cmp(perdict, label):
-    n, =label.shape
+    n, = label.shape
     wrong = []
     for i in range(n):
         if (perdict[i] != label[i]):
             wrong.append(i)
             
     return wrong 
+
+
+def printindex(kn,log,dec,en):
+    
+    en = set(en)
+    kn = set(kn)
+    log = set(log)
+    dec = set(dec)
+    kn_r = en-en.intersection(kn)
+    log_r = en-en.intersection(log)
+    dec_r = en-en.intersection(dec)
+    all_r = kn_r.union(log_r.union(dec_r))
+                
+    return list(sorted(kn_r)), list(sorted(log_r)), list(sorted(dec_r)), list(sorted(all_r))
 
 def main(argv):
     data,X,y = manipulate_data()
@@ -330,7 +345,7 @@ def main(argv):
     logp_tr_0 = np.delete(logp_tr,1,1)
     logp_te_1 = np.delete(logp_te,0,1)
     logp_tr_1 = np.delete(logp_tr,0,1)
-    
+
     
     dec,decp_tr,decp_te=cali_dectree(X_train,y_train,X_test)
     dec = dec.reshape(n,1)
@@ -342,12 +357,12 @@ def main(argv):
     
     
     
-    '''
+    
     fig = plt.figure(1, figsize=(10, 10))
     ax1 = plt.subplot2grid((3, 1), (0, 0), rowspan=2)
     ax2 = plt.subplot2grid((3, 1), (2, 0))
-    fraction_of_positives, mean_predicted_value = calibration_curve(y_test, knp_te_1, n_bins=10)
-    knbscore =  brier_score_loss(y_test, knp_te_1, pos_label=y.max())
+    fraction_of_positives, mean_predicted_value = calibration_curve(y_test, logp_te_1, n_bins=10)
+    knbscore =  brier_score_loss(y_test, logp_te_1, pos_label=y.max())
     ax1.plot(mean_predicted_value, fraction_of_positives, "s-",label="%s (%1.3f)" % ('clog', knbscore))
     ax2.hist(knp_tr_1, range=(0, 1), bins=10, label='clog',histtype="step", lw=2)
     ax1.set_ylabel("Fraction of positives")
@@ -360,7 +375,7 @@ def main(argv):
     ax2.legend(loc="upper center", ncol=2)
 
     plt.tight_layout()
-    '''
+    
     
     
     for i in range(m):
@@ -395,10 +410,25 @@ def main(argv):
     log_w = cmp(log,y_test)
     dec_w = cmp(dec,y_test)
     en_p_w = cmp(en_p,y_test)
-    '''print(knn_w)
+    print(knn_w)
     print(log_w)
     print(dec_w)
-    print(en_p_w)'''
+    print(en_p_w)
+    
+    print ("\n\n\n")
+    
+    kn_r, log_r, dec_r, all_r = printindex(knn_w,log_w,dec_w,en_p_w)
+    print(kn_r)
+    print(log_r)
+    print(dec_r)
+    print(all_r)
+    
+    for i in range (len(all_r)):
+        print(nn_yp_te[all_r[i]])
+        print(y_1_p_te[all_r[i]])
+        print(y_test[all_r[i]])
+        print("\n")
+    
     
 if __name__ == "__main__":
     main(sys.argv)
