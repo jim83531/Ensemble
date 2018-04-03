@@ -357,7 +357,7 @@ def main(argv):
     
     
     
-    
+    '''
     fig = plt.figure(1, figsize=(10, 10))
     ax1 = plt.subplot2grid((3, 1), (0, 0), rowspan=2)
     ax2 = plt.subplot2grid((3, 1), (2, 0))
@@ -375,7 +375,7 @@ def main(argv):
     ax2.legend(loc="upper center", ncol=2)
 
     plt.tight_layout()
-    
+    '''
     
     
     for i in range(m):
