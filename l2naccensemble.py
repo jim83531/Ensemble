@@ -216,20 +216,18 @@ def mv(kn,log,dec):
     
     return mvm
 
-def en(nnyp,my):
+def en(weight,y):
     
-
-    
-    n, d = my.shape
+    n, d = y.shape
     en_p = np.zeros((n,1))
     w = np.zeros((1,3))
     en = np.zeros((n,1))
 
     
     for i in range(n):
-        summ = np.sum(nnyp[i])
-        w = (nnyp)/summ
-        en_p[i] = np.dot(w[i].T.reshape(1,3),my[i].reshape(3,1))
+        summ = np.sum(weight[i])
+        w = (weight)/summ
+        en_p[i] = np.dot(w[i].T,y[i])
         
         if (en_p[i]>0.5):
             en[i]=1
@@ -247,10 +245,14 @@ def main ():
     
     #ensemble members
     knn_prtr_n, knn_prte = knn(X_train_c, y_train_c, X_train_n,X_test)
+    knn_prte = knn_prte.reshape(2000,1)
     svc_prtr_n, svc_prte = svc(X_train_c, y_train_c, X_train_n,X_test)
+    svc_prte = svc_prte.reshape(2000,1)
     dec_prtr_n, dec_prte = dectree(X_train_c, y_train_c, X_train_n,X_test)
-    y_te_pre = np.vstack((np.vstack((knn_prte,svc_prte)),dec_prte))
-    y_te_pre = y_te_pre.reshape(2000,3)
+    dec_prte = dec_prte.reshape(2000,1)
+    y_te_pre = np.hstack((np.hstack((knn_prte,svc_prte)),dec_prte))
+    #y_te_pre = y_te_pre.reshape(2000,3)
+    #print(y_te_pre.shape)
     
     
     #caculate exacally accuracy
@@ -274,10 +276,12 @@ def main ():
     
     
     #knn_nn_test, svc_nn_test, dec_nn_test= nn(X_train_n,X_test,knn_exac,svc_exac,dec_exac)
-    #y_train_n_nn_test = np.hstack((np.hstack((knn_nn_test,svc_nn_test)),dec_nn_test))
-    df = pd.read_csv('./prea_exac.csv')
-    y_train_n_nn_test = df.values
+    y_train_n_nn_test = np.hstack((np.hstack((knn_nn_test,svc_nn_test)),dec_nn_test))
+    print(y_train_n_nn_test.shape)
     
+    '''df = pd.read_csv('./prea_exac.csv')
+    y_train_n_nn_test = df.values'''
+    prte = np.hstack((np.hstack((knn_prte,svc_prte)),dec_prte))
     mvm = mv(knn_prte,svc_prte,dec_prte)
     final_pre, mulre = en(y_train_n_nn_test,y_te_pre)   
     
@@ -303,12 +307,20 @@ def main ():
     print("knn test : %f" % (sklearn.metrics.accuracy_score(knn_prte, y_test)))
     print("svc test : %f" % (sklearn.metrics.accuracy_score(svc_prte, y_test)))
     print("dec test : %f" % (sklearn.metrics.accuracy_score(dec_prte, y_test)))
-    print("pre test : %f" % (sklearn.metrics.accuracy_score(mvm, y_test)))
+    print("mv test : %f" % (sklearn.metrics.accuracy_score(mvm, y_test)))
     print("pre test : %f" % (sklearn.metrics.accuracy_score(final_pre, y_test)))
     
     values = y_train_n_nn_test
     df = pd.DataFrame(values)
-    df.to_csv("prea_exac.csv", sep=',',index = False)
-    '''print("dec nn_p test R^2: %f" % (sklearn.metrics.r2_score(y_train_n_nn_test, y_test_exac)))'''
+    df.to_csv("nnpre_cla_p.csv", sep=',',index = False)
+    
+    values = prte
+    df = pd.DataFrame(values)
+    df.to_csv("cla_pre.csv", sep=',',index = False)
+    
+    values = y_test
+    df = pd.DataFrame(values)
+    df.to_csv("y_test.csv", sep=',',index = False)
+    
     
 main()
